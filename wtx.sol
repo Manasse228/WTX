@@ -184,19 +184,9 @@ contract Wtx is ERC20Interface, Owned {
     
     // All dates are stored as timestamps. GMT
     uint constant public startPresale   = 1541980800; // 12.11.2018 00:00:00
-    uint constant public endPresale     = 1546732800; // 06.01.2019 00:00:00
+    uint constant public endPresale     = 1546819199; // 06.01.2019 23:59:00
     uint constant public startCrowdsale = 1546819200; // 07.01.2019 00:00:00
-    uint constant public endCrowdsale   = 1552780800; // 17.03.2019 00:00:00
-    
-/////////////////////// Rate Date [Begin] //////////////////////////    
-    uint constant public phase_1   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_2   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_3   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_4   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_5   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_6   = 1553903999; // 29.03.2019 23:59:59
-    uint constant public phase_7   = 1553903999; // 29.03.2019 23:59:59
-/////////////////////// Rate Date [End] //////////////////////////
+    uint constant public endCrowdsale   = 1552867199; // 17.03.2019 23:59:59
     
     bool icoClosed = false;
 
