@@ -67,6 +67,9 @@ contract Wtx is ERC20Interface, Owned {
     uint8 public constant decimals = 18;
 
     uint constant public _decimals18 = uint(10) ** decimals;
+    
+    // 1 ether  = WTX
+    uint256 public constant oneEtherValue = 2000;
 
     uint constant public _totalSupply    = 400000000 * _decimals18;
     uint constant public saleTokenSupply = 36000 * _decimals18;
@@ -179,23 +182,48 @@ contract Wtx is ERC20Interface, Owned {
     mapping(address => bool) public receivedToken;
     
     
-    // All dates are stored as timestamps.
-    uint constant public startPresale   = 1531692000; // 16.07.2018 00:00:00
-    uint constant public endPresale     = 1543622399; // 30.11.2018 23:59:59
-    uint constant public startCrowdsale = 1548979199; // 31.01.2019 23:59:59
-    uint constant public endCrowdsale   = 1553903999; // 29.03.2019 23:59:59
+    // All dates are stored as timestamps. GMT
+    uint constant public startPresale   = 1541980800; // 12.11.2018 00:00:00
+    uint constant public endPresale     = 1546732800; // 06.01.2019 00:00:00
+    uint constant public startCrowdsale = 1546819200; // 07.01.2019 00:00:00
+    uint constant public endCrowdsale   = 1552780800; // 17.03.2019 00:00:00
+    
+/////////////////////// Rate Date [Begin] //////////////////////////    
+    uint constant public phase_1   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_2   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_3   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_4   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_5   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_6   = 1553903999; // 29.03.2019 23:59:59
+    uint constant public phase_7   = 1553903999; // 29.03.2019 23:59:59
+/////////////////////// Rate Date [End] //////////////////////////
     
     bool icoClosed = false;
 
-    function _getTokenBonus() public pure returns(uint256) {
-      //
-
-      return 4000;  
+    function _getTokenBonus(uint256 _wtx) public view returns(uint256) {
+        
+        if (now <= 1543190399 && now >= startPresale) {
+           return _wtx.mul(30).div(100);
+        } else if (now <= 1544399999 && now >= 1543190400 ) {
+           return _wtx.mul(55).div(100).div(2); 
+        } else if (now <= 1545609599 && now >= 1544400000) {
+           return _wtx.mul(25).div(100); 
+        } else if (now <= 1546819199 && now >= 1545609600) {
+           return _wtx.mul(20).div(100); 
+        } else if (now <= 1548028799 && now >= 1546819200) {
+           return _wtx.mul(20).div(100); 
+        } else if (now <= 1550447999 && now >= 1548028800) {
+           return _wtx.mul(15).div(100); 
+        } else if (now <= 1552867199 && now >= 1550448000) {
+           return _wtx.mul(10).div(100); 
+        } else {
+           return _wtx;
+        } 
     }
     
-    function _getTokenAmount(uint256 _weiAmount)  private pure returns (uint256) {
-        uint256 token = _weiAmount * 20000  ;
-        uint256  tokenBonus = _getTokenBonus() * _decimals18;
+    function _getTokenAmount(uint256 _weiAmount)  private view returns (uint256) {
+        uint256 token = _weiAmount * oneEtherValue  ;
+        uint256  tokenBonus = _getTokenBonus(token);
         return token.add(tokenBonus);
     }
     
