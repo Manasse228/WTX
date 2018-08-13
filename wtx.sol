@@ -186,7 +186,7 @@ contract Wtx is ERC20Interface, Owned {
     uint constant public startPresale   = 1541980800; // 12.11.2018 00:00:00
     uint constant public endPresale     = 1546819199; // 06.01.2019 23:59:00
     uint constant public startCrowdsale = 1546819200; // 07.01.2019 00:00:00
-    uint constant public endCrowdsale   = 1552867199; // 17.03.2019 23:59:59
+    uint constant public endCrowdsale   = 1552953599; // 18.03.2019 23:59:59
     
     bool icoClosed = false;
 
@@ -204,7 +204,7 @@ contract Wtx is ERC20Interface, Owned {
            return _wtx.mul(20).div(100); 
         } else if (now <= 1550447999 && now >= 1548028800) {
            return _wtx.mul(15).div(100); 
-        } else if (now <= 1552867199 && now >= 1550448000) {
+        } else if (now <= 1552953599 && now >= 1550448000) {
            return _wtx.mul(10).div(100); 
         } else {
            return _wtx;
