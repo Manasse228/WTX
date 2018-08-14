@@ -62,26 +62,57 @@ contract ERC20Interface {
 contract Wtx is ERC20Interface, Owned {
     using SafeMath for uint;
 
-    string public constant name = "WTX";
+    string public constant name = "WTX Token";
     string public constant symbol = "WTX";
     uint8 public constant decimals = 18;
 
     uint constant public _decimals18 = uint(10) ** decimals;
-    
-    // 1 ether  = WTX
-    uint256 public constant oneEtherValue = 2000;
 
     uint constant public _totalSupply    = 400000000 * _decimals18;
-    uint constant public saleTokenSupply = 36000 * _decimals18;
-    uint constant public teamTokenSupply = 308000000 * _decimals18;
+    uint256 public remainTokenSupply;
+    
+    // Total ICO supply
+    uint256 private icoSupply;
+    // Allocation for the WTX's founder
+    uint256 private founderSupply;
+    // Team and Advisor supply
+    uint256 private teamAdvisorsSupply;
+    // Amount of Business Development 
+    uint256 private businessDevSupply;
+    // Amount of Research 
+    uint256 private researchSupply;
+    // Amount of Reserve
+    uint256 private reserveSupply;
     
     // Address where funds are collected
     address constant public wallet = 0x255ae182b2e823573FE0551FA8ece7F824Fd1E7F;
+    
+    address private founderWallet;
+    address private teamAdvisorsWallet;
+    address private businessDevWallet;
+    address private researchWallet;
+    address private reserveWallet;
 
-
-    constructor() public {
+    constructor() public { 
         balances[owner] = _totalSupply;
         whiteList[owner] = true;
+        whiteList[0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b] = true;
+        
+        icoSupply          = 200000000 * _decimals18;
+        founderSupply      = 40000000  * _decimals18;
+        teamAdvisorsSupply = 10000000  * _decimals18;
+        businessDevSupply  = 20000000  * _decimals18;
+        researchSupply     = 10000000  * _decimals18;
+        reserveSupply      = 120000000 * _decimals18;
+        
+        founderWallet      = 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b;
+        teamAdvisorsWallet = 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b;
+        businessDevWallet  = 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b;
+        researchWallet     = 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b;
+        reserveWallet      = 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b;
+        
+        remainTokenSupply = icoSupply;
+        
         emit Transfer(address(0), owner, _totalSupply);
     }
 
@@ -112,7 +143,7 @@ contract Wtx is ERC20Interface, Owned {
 
     function _transfer(address _from, address _toAddress, uint _tokens) private {
         balances[_from] = balances[_from].sub(_tokens);
-        balances[_toAddress] = balances[_toAddress].add(_tokens);
+        addToBalance(_toAddress, _tokens);
         emit Transfer(_from, _toAddress, _tokens);
     }
     
@@ -156,29 +187,24 @@ contract Wtx is ERC20Interface, Owned {
 
     // Amount of ETH received during ICO
     uint public weiRaised;
-    uint public ebtRaised;
+    uint public wtxRaised;
     
-    uint constant public softCapUSD = 20000000;
-    uint constant public hardCapUSD = 53000000;
-
-    // Minimum wei to buy token during ICO 0.01 eth
-    uint private minWeiBuy_ICO = _decimals18 / 100;
+    uint constant public softCapWei = 50000 * _decimals18;
+    uint constant public hardCapWei = 100000 * _decimals18;
     
-    // Minimum wei to buy token during presale 1 eth
-    uint private minWeiBuy_preICO =  _decimals18;
+    // Minimum purchase Token [20 wtx]
+    uint constant public minPurchase = 20 * _decimals18;
     
-    // For 1eth we have 20 000 EBT
-    uint256 mt = 20000;
-    
-    uint256 public remainTokenSupply = saleTokenSupply;
+    // 1 ether  = 2000 WTX
+    uint256 public constant oneEtherValue = 2000;
     
     // WhiteList
     mapping(address => bool) public whiteList;
     
-    // Ether send 
+    // Ether send by address
     mapping(address => uint256) public ethSent;
     
-    // receive Token 
+    // map to indicate who is already received token
     mapping(address => bool) public receivedToken;
     
     
@@ -190,6 +216,7 @@ contract Wtx is ERC20Interface, Owned {
     
     bool icoClosed = false;
 
+    // get the token bonus by rate
     function _getTokenBonus(uint256 _wtx) public view returns(uint256) {
         
         if (now <= 1543190399 && now >= startPresale) {
@@ -204,17 +231,11 @@ contract Wtx is ERC20Interface, Owned {
            return _wtx.mul(20).div(100); 
         } else if (now <= 1550447999 && now >= 1548028800) {
            return _wtx.mul(15).div(100); 
-        } else if (now <= 1552953599 && now >= 1550448000) {
+        } else if (now <= endCrowdsale && now >= 1550448000) {
            return _wtx.mul(10).div(100); 
         } else {
-           return _wtx;
+           return 0;
         } 
-    }
-    
-    function _getTokenAmount(uint256 _weiAmount)  private view returns (uint256) {
-        uint256 token = _weiAmount * oneEtherValue  ;
-        uint256  tokenBonus = _getTokenBonus(token);
-        return token.add(tokenBonus);
     }
     
 /////////////////////// MODIFIERS ///////////////////////
@@ -225,29 +246,9 @@ contract Wtx is ERC20Interface, Owned {
         _;
     }
 
-    // Ensure actions can only happen during Presale
-    modifier duringPresale(){
-        require(now <= endPresale);
-        require(now >= startPresale);
-        _;
-    }
-    
-    // Ensure actions can only happen during CrowdSale
-    modifier duringCrowdsale(){
-        require(now <= endCrowdsale);
-        require(now >= startCrowdsale);
-        _;
-    }
-
     // ico sill runing
     modifier icoNotClosed(){
         require(!icoClosed, "ICO is close, Thanks");
-        _;
-    }
-
-    // token available
-    modifier remainToken(){
-        require(remainTokenSupply > 0);
         _;
     }
     
@@ -262,12 +263,43 @@ contract Wtx is ERC20Interface, Owned {
         require(_unit != 0);
         _;
     }
-
-    // amount >0
-    modifier checkMinWei_preICo(uint256 _unit){
-        require(_unit >= minWeiBuy_ICO);
+    
+    // ready for distribution
+    modifier distribution(){
+        assert(now >= now + 14 days);
         _;
     }
+    
+    // ready for founder distribution
+    modifier founderVestingPeriod(){
+        assert(now >= now + 90 days);
+        _;
+    }
+    
+    // ready for teamAdvisor distribution
+    modifier teamAdvisorVestingPeriod(){
+        assert(now >= now + 90 days);
+        _;
+    }
+    
+    // ready for businessDev distribution
+    modifier businessDevVestingPeriod(){
+        assert(now >= now + 100 days);
+        _;
+    }
+    
+    // ready for research distribution
+    modifier researchVestingPeriod(){
+        assert(now >= now + 150 days);
+        _;
+    }
+    
+    // ready for reserve distribution
+    modifier reserveVestingPeriod(){
+        assert(now >= now + 120 days);
+        _;
+    }
+    
     
 /////////////////////// Events ///////////////////////
 
@@ -280,74 +312,59 @@ contract Wtx is ERC20Interface, Owned {
     
     event AddToken(address receiver, uint256 amountToken, uint256 amountWei);
 
-/////////////////////// Function checker ///////////////////////
 
-
-    // Add early investor
-    function addInvestor(address[] members) public onlyOwner {
+    // Add early investors
+    function addInvestors(address[] members) public onlyOwner {
         for(uint i = 0; i < members.length; i++) {
             whiteList[members[i]] = true;
         }
     }
     
-    /// @notice doAirdrop is called when we launch airdrop.
-    /// @notice airdrop tokens has their own supply.
-    //uint dropped = 0;
-    /*function doAirdrop(address[] members, uint[] tokens) public onlyOwner {
-        require(members.length == tokens.length);
+    // Add early investor
+    function addInvestor(address _member) public onlyOwner {
+        whiteList[_member] = true;
+    }
     
-        for(uint i = 0; i < members.length; i++) {
-            _freezeTransfer(members[i], tokens[i]);
-            dropped = dropped.add(tokens[i]);
-        }
-        require(dropped <= bountySupply);
-    }*/
+    // get token amount bu wei send
+    function _getTokenAmount(uint256 _weiAmount) private view returns (uint256) {
+        uint256 token = _weiAmount * oneEtherValue;
+        assert(token >= minPurchase);
+        uint256  tokenBonus = _getTokenBonus(token);
+        return token.add(tokenBonus);
+    }
     
-    
-    //inwhiteList(_addrTo)
+    // Function to purchase token
     function purchaseToken(address _addrTo) payable public 
-            
+        inwhiteList(_addrTo)    
         addressNotNull(_addrTo)
         amountNotNull(msg.value)  { 
         
-        require(now >= startPresale && now <= endCrowdsale);
-        require(!icoClosed);
+        assert(weiRaised <= hardCapWei);
+        assert(now >= startPresale && now <= endCrowdsale);
+        assert(!icoClosed);
         
         uint _wei = msg.value;
-        uint _ebtToken = _getTokenAmount(_wei);
-        //uint256 weiToRefund = 0;
+        uint _wtxToken = _getTokenAmount(_wei);
         
-        /* If the user want par example 2000 token
-           but its remain 100 token refund him
+        updateCrowdfundState(_wtxToken, _addrTo, _wei);
         
-        if(remainTokenSupply > _ebtToken) {
-            uint256 weiToPurchase = (remainTokenSupply.mul(_wei)).div(_ebtToken);
-            assert( _wei >= weiToPurchase );
-            weiToRefund = _wei.sub(weiToPurchase);
-            _wei = weiToPurchase;
-            icoClosed = true;
-        }
-         */
-        updateCrowdfundState(_ebtToken, _addrTo, _wei);
-        
-        //if(weiToRefund>0) _addrTo.transfer(weiToRefund);
         _forwardFunds(); 
-        emit AddToken(_addrTo, _ebtToken, _wei);
+        emit AddToken(_addrTo, _wtxToken, _wei);
     }
     
-    function updateCrowdfundState(uint256 _ebt, address _addr, uint256 _wei) private {
+    function updateCrowdfundState(uint256 _wtx, address _addr, uint256 _wei) private {
         
-        assert(remainTokenSupply > _ebt);
-        remainTokenSupply = remainTokenSupply.sub(_ebt);
+        assert(remainTokenSupply >= _wtx);
+        remainTokenSupply = remainTokenSupply.sub(_wtx);
         
         // Token raised
-        ebtRaised = ebtRaised.add(_ebt);
+        wtxRaised = wtxRaised.add(_wtx);
         // Wei raised by address
         ethSent[_addr] = ethSent[_addr].add(_wei);
         // Total wei raised
         weiRaised = weiRaised.add(_wei);
         // Change balances
-        balances[_addr] = balances[_addr].add(_ebt);
+        addToBalance(_addr, _wtx);
         // Set this address to false to not receive token before tokenDistribution
         receivedToken[_addr] = false;
     }
@@ -364,31 +381,45 @@ contract Wtx is ERC20Interface, Owned {
      * @dev Deliver tokens to receiver_ after crowdsale ends.
      */
     function withdrawTokensFor(address receiver_) private addressNotNull(receiver_) {
+        require(!receivedToken[receiver_]);
         
         uint256 amount = balances[receiver_];
-        require(amount > 0);
-        require(balances[msg.sender] >= amount);
+        require(balances[owner] >= amount);
         
-        balances[msg.sender] = balances[msg.sender].sub(balances[receiver_]);
+        balances[owner] = balances[owner].sub(balances[receiver_]);
         
-        emit Transfer(msg.sender, receiver_, balances[receiver_]);
+        emit Transfer(owner, receiver_, amount);
         receivedToken[receiver_] = true;
     }
     
     function tokenDistribution(address[] members) public onlyOwner {
     
-        //require(icoClosed);
+        require(icoClosed);
         for(uint i = 0; i < members.length; i++) {
-            require(!receivedToken[members[i]]);
             withdrawTokensFor(members[i]);
         }
         
     }
     
+    // Release WTX team supply after vesting period is finished.
+    function releaseWtxTeamTokens() public onlyOwner
+                            teamAdvisorVestingPeriod returns(bool success) {
+        require(teamAdvisorsSupply > 0);
+        addToBalance(teamAdvisorsWallet, teamAdvisorsSupply);
+        emit Transfer(owner, teamAdvisorsWallet, teamAdvisorsSupply);
+        teamAdvisorsSupply = 0;
+        return true;
+    }
+    
+    // Add to balance
+    function addToBalance(address _address, uint _amount) internal {
+    	balances[_address] = balances[_address].add(_amount);
+    }
 
     function () payable external {
         purchaseToken(msg.sender);
     }
+    
 
     // Account 2 0x2F7F14890118f3908732DD3A71bEd7DB886CbA4b
 
